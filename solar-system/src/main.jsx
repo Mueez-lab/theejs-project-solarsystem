@@ -1,29 +1,69 @@
-import * as THREE from 'three'
-import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js'
+import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { Pane } from "tweakpane";
 
-const scene = new THREE.Scene()
+// initialize pane
 
+// initialize the scene
+const scene = new THREE.Scene();
+
+// add textureLoader
 const textureLoader = new THREE.TextureLoader();
-const sunTexture = textureLoader.load('../textures/2k_sun.jpg');
-const earthTexture = textureLoader.load('../textures/2k_earth_daymap.jpg')
-// const moonTexture = textureLoader.load('../textures/2k_moon.jpg')
-const mercuryTexture = textureLoader.load('../textures/2k_mercury.jpg')
-const venusTexture = textureLoader.load('../textures/2k_venus_surface.jpg')
-const marsTexture = textureLoader.load('../textures/2k_mars.jpg')
+const cubeTextureLoader = new THREE.CubeTextureLoader()
+cubeTextureLoader.setPath('/textures/cubeMap/')
 
-const sphereGeometry = new THREE.SphereGeometry(1,32,32)  // creating one generic 
+// adding textures
+const sunTexture = textureLoader.load("/textures/2k_sun.jpg");
+sunTexture.colorSpace = THREE.SRGBColorSpace  
+const mercuryTexture = textureLoader.load("/textures/2k_mercury.jpg");
+mercuryTexture.colorSpace = THREE.SRGBColorSpace
+const venusTexture = textureLoader.load("/textures/2k_venus_surface.jpg");
+venusTexture.colorSpace = THREE.SRGBColorSpace
+const earthTexture = textureLoader.load("/textures/2k_earth_daymap.jpg");
+earthTexture.colorSpace = THREE.SRGBColorSpace
+const marsTexture = textureLoader.load("/textures/2k_mars.jpg");
+marsTexture.colorSpace = THREE.SRGBColorSpace
+const moonTexture = textureLoader.load("/textures/2k_moon.jpg");
+moonTexture.colorSpace = THREE.SRGBColorSpace
 
-//SUN
-const sunMaterial = new THREE.MeshBasicMaterial({map:sunTexture})
-const earthMaterial = new THREE.MeshBasicMaterial({map:earthTexture})
-// const moonMaterial = new THREE.MeshBasicMaterial({map:moonTexture})
-const venusMaterial = new THREE.MeshBasicMaterial({map:venusTexture})
-const mercuryMaterial = new THREE.MeshBasicMaterial({map:mercuryTexture})
-const marsMaterial = new THREE.MeshBasicMaterial({map:marsTexture})
+const backgroundCubemap = cubeTextureLoader
+.load( [
+  'px.png',
+  'nx.png',
+  'py.png',
+  'ny.png',
+  'pz.png',
+  'nz.png'
+] );
 
-const sun = new THREE.Mesh(sphereGeometry,sunMaterial)
-sun.scale.setScalar(5) //109
-scene.add(sun)
+scene.background = backgroundCubemap
+
+// add materials
+const mercuryMaterial = new THREE.MeshStandardMaterial({
+  map: mercuryTexture,
+});
+const venusMaterial = new THREE.MeshStandardMaterial({
+  map: venusTexture,
+});
+const earthMaterial = new THREE.MeshStandardMaterial({
+  map: earthTexture,
+});
+const marsMaterial = new THREE.MeshStandardMaterial({
+  map: marsTexture,
+});
+const moonMaterial = new THREE.MeshStandardMaterial({
+  map: moonTexture,
+});
+
+// add stuff here
+const sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
+const sunMaterial = new THREE.MeshBasicMaterial({
+  map: sunTexture,
+});
+
+const sun = new THREE.Mesh(sphereGeometry, sunMaterial);
+sun.scale.setScalar(5);
+scene.add(sun);
 
 const planets = [
   {
@@ -81,62 +121,98 @@ const planets = [
   },
 ];
 
-const planetMeshes = planets.map((planet)=>{
-  // create the mesh 
-  // add it in our scene 
-  // loop through each moon and create the moon
-  // add the moon to the planet 
-  const planetMesh = new THREE.Mesh(sphereGeometry,planet.material)
+const createPlanet = (planet) =>{
+  const planetMesh = new THREE.Mesh(
+    sphereGeometry,
+    planet.material
+  )
   planetMesh.scale.setScalar(planet.radius)
   planetMesh.position.x = planet.distance
-  scene.add(planetMesh)
-})
-
-console.log(planetMeshes);
-
-
-const amberLight = new THREE.AmbientLight(0xffffff,0.5);
-scene.add(amberLight)
-
-const camera = new THREE.PerspectiveCamera(
-  35,
-  window.innerWidth/window.innerHeight,
-  0.01,
-  10000
-)
-
-camera.position.z = 100
-camera.position.y = 5
-
-const canvas = document.querySelector('canvas.threejs')
-const renderer = new THREE.WebGLRenderer({ canvas , antialias: true }); // software solution antialias is used to make the image more clear
-
-renderer.setSize(window.innerWidth, window.innerHeight);
-
-// hardware solution to make the image more clear
-renderer.setPixelRatio(Math.max(window.devicePixelRatio, 2)); // to make the image more clear to remove zig zag effect
-
-// initialize controls after renderer
-const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = true; // to make the movement smooth
-controls.autoRotate = false; // to make the camera auto rotate
-
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight; 
-  camera.updateProjectionMatrix(); // update the camera aspect ratio // to make it responsive
-  // redner doen't know how big the canvas is, so we need to set the size of the canvas
-  renderer.setSize(window.innerWidth, window.innerHeight);
-}); // resize event listener
-
-
-const clock = new  THREE.Clock();
-
-const renderLoop = () =>{
-  const elapsedTime = clock.getElapsedTime();  
-  sun.rotation.y+=0.0003
-  controls.update(); // update controls in every frame
-  renderer.render(scene, camera); // render once display what was in image as a pic one time but we want render loop so that we can see the animation but to do that we need requestAnimationFrame
-  window.requestAnimationFrame(renderLoop)
+  return planetMesh
 }
 
-renderLoop();
+const createMoon = (moon) =>{
+  const moonMesh = new THREE.Mesh(
+    sphereGeometry,
+    moonMaterial
+  )
+  moonMesh.scale.setScalar(moon.radius)
+  moonMesh.position.x = moon.distance
+  return moonMesh
+}
+
+
+const planetMeshes = planets.map((planet) =>{
+  const planetMesh = createPlanet(planet)
+  scene.add(planetMesh)
+
+  planet.moons.forEach((moon) => {
+    const moonMesh = createMoon(moon)
+    planetMesh.add(moonMesh)
+  })
+  return planetMesh
+})
+
+console.log(planetMeshes)
+
+// add lights
+const ambientLight = new THREE.AmbientLight(
+  0xffffff,
+  0.3
+)
+scene.add(ambientLight)
+
+const pointLight = new THREE.PointLight(
+  0xffffff,
+  1000
+)
+scene.add(pointLight)
+ 
+// initialize the camera
+const camera = new THREE.PerspectiveCamera(
+  35,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  400
+);
+camera.position.z = 100;
+camera.position.y = 5;
+
+// initialize the renderer
+const canvas = document.querySelector("canvas.threejs");
+const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+// add controls
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.maxDistance = 200;
+controls.minDistance = 20;
+
+// add resize listener
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// render loop
+const renderloop = () => {
+  planetMeshes.forEach((planet, planetIndex)=>{
+    planet.rotation.y +=  planets[planetIndex].speed
+    planet.position.x = Math.sin(planet.rotation.y) * planets[planetIndex].distance
+    planet.position.z = Math.cos(planet.rotation.y) * planets[planetIndex].distance
+    planet.children.forEach((moon, moonIndex) =>{
+      moon.rotation.y += planets[planetIndex].moons[moonIndex].speed
+      moon.position.x = Math.sin(moon.rotation.y) * planets[planetIndex].moons[moonIndex].distance
+      moon.position.z = Math.cos(moon.rotation.y) * planets[planetIndex].moons[moonIndex].distance
+    })
+  })
+
+  controls.update();
+  renderer.render(scene, camera);
+  window.requestAnimationFrame(renderloop);
+};
+
+renderloop();
